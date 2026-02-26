@@ -369,7 +369,7 @@ export async function skillsGetRouterV1Handler(ctx: ActionCtx, request: Request)
     let security = undefined
     if (version.llmAnalysis) {
       const analysis = version.llmAnalysis
-      let status: "clean" | "suspicious" | "malicious" | "pending" | "error"
+      let status: 'clean' | 'suspicious' | 'malicious' | 'pending' | 'error'
       switch (analysis.verdict) {
         case 'benign':
           status = 'clean'
@@ -383,11 +383,17 @@ export async function skillsGetRouterV1Handler(ctx: ActionCtx, request: Request)
         default:
           status = analysis.status === 'error' ? 'error' : 'pending'
       }
-      
-      const hasWarnings = analysis.verdict === 'suspicious' || 
-                         analysis.verdict === 'malicious' ||
-                         (analysis.dimensions?.some((d: any) => d.rating !== 'ok') ?? false)
-      
+
+      const hasWarnings =
+        analysis.verdict === 'suspicious' ||
+        analysis.verdict === 'malicious' ||
+        (Array.isArray(analysis.dimensions) &&
+          analysis.dimensions.some((dimension) => {
+            if (!dimension || typeof dimension !== 'object') return false
+            const rating = (dimension as { rating?: unknown }).rating
+            return typeof rating === 'string' && rating !== 'ok'
+          }))
+
       security = {
         status,
         hasWarnings,
